@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meal Tracker App</title>
+
+  <!-- tailwind & font awesome -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <!-- sweet alert -->
+   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    table thead tr th{
+      padding: 12px;
+      color: white;
+      background-color: rgba(0, 0, 0, 0.6)
+    }
+
+    table tbody tr td{
+      padding: 12px;
+    }
+
+    .modalAwalTable tr td{
+      padding: 6px;
+    }
+
+    .modal-content-add input:focus{
+      outline: 1px solid #6366f1;
+    }
+
+    .modal-content-add p{
+      margin-bottom: 6px;
+    }
+
+    @media (max-width: 640px){
+      table thead tr th{
+        padding: 6px;
+        font-size: 12px;
+        font-weight: normal;
+      }
+    }
+  </style>
+
+</head>
+<body class="m-3 md:m-4">
+  <div class="bg-gray-200 h-auto p-3 md:p-4 mt-8 rounded-xl w-full">
+
+    <!-- header start -->
+    <div class="flex items-center gap-[3px]">
+      <h1 class="text-base md:text-xl">Meal Tracker App</h1>
+      <button id="addMeal"><i class="fa-solid fa-plus text-base md:text-xl"></i></button>
+    </div>
+    <!-- header end -->
+
+    <!-- table meal start -->
+    <div id="tableWrapper" class="mt-4 md:mt-6 border border-gray-400 md:rounded-lg overflow-x-auto">
+      <table class="w-full text-left">
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Name</th>
+            <th>Calories</th>
+            <th>Categories</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="tableMealBody"></tbody>
+      </table>
+    </div>
+    <!-- table meal end -->
+
+    <!-- average calories & group by category start -->
+    <div id="averageAndGroup" class="mt-4 md:mt-6 space-y-2 md:font-semibold text-sm md:text-base">
+      <div id="averageCal" class="">
+        Average Calories: <span>-</span>
+      </div>
+      <div class="">
+        Meal Group
+        <div id="mealGroup" class="mt-2"></div>
+      </div>
+    </div>
+    <!-- average calories & group by category end -->
+     
+    <!-- message data kosong start -->
+     <div id="dataKosong" class="mt-4"></div>
+    <!-- message data kosong end -->
+
+    <!-- modal awal start -->
+     <div id="modalAwalOverlay" class="bg-black/80 text-white fixed inset-0 flex items-start justify-center p-4">
+
+      <!-- modal box start -->
+      <div class="relative w-[650px] bg-white text-black h-auto rounded-xl p-4 flex flex-col mt-24 items-center">
+
+        <!-- icon x -->
+        <button id="tutup" class="absolute px-0.5 rounded-full bg-black text-red-500 right-[-10px] top-[-10px] cursor-pointer border border-white"><i class="fa-solid fa-x"></i></button>
+
+        <div class="text-red-700 font-semibold text-[26px] mb-6 border-b border-black">Attention!!!</div>
+        <p class="">Untuk mengisi data, klik icon <strong class="font-bold text-[20px]">+</strong> ,lalu isi data dengan </p>
+        <p class="border-b border-gray-300">Contoh:</p>
+        <table class="modalAwalTable">
+          <tbody>
+            <tr>
+              <td>Name</td>
+              <td>: Nasi goreng</td>
+            </tr>
+            <tr>
+              <td>Calories</td>
+              <td>: 250</td>
+            </tr>
+            <tr>
+              <td>Categories</td>
+              <td>: Dinner</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <!-- modal box end -->
+
+     </div>
+    <!-- modal awal end -->
+
+    <!-- modal add meal start -->
+     <div id="overlayModalAddMeal" class="hidden bg-black/60 fixed inset-0 flex items-start justify-center">
+      <div id="addMealModal" class="modal-content-add relative bg-white h-auto mt-20 p-6 m-4 rounded w-[450px]">
+
+        <button id="closeAddMeal" class="absolute bg-black text-red-500 rounded-full px-0.5 right-[-10px] top-[-10px]"><i class="fa-solid fa-x"></i></button>
+
+        <div id="formTitle" class="border-b border-black text-center">Add Meal</div>
+
+        <div class="mt-3">
+          <p>Name:</p>
+          <input id="mealName" type="text" class="py-1 px-2 rounded border border-gray-300" placeholder="Meal name...">
+          <p class="italic text-xs text-red-500 mt-0.5" id="text-error-name"></p>
+        </div>
+        <div class="mt-3">
+          <p>Calories:</p>
+          <input id="mealCalory" type="number" class="py-1 px-2 rounded border border-gray-300" placeholder="contoh: 350">
+          <p class="italic text-xs text-red-500 mt-0.5" id="text-error-calory"></p>
+        </div>
+        <div class="mt-3">
+          <p>Categories:</p>
+          <input id="mealCategory" type="text" class="py-1 px-2 rounded border border-gray-300" placeholder="contoh: Breakfast">
+          <p class="italic text-xs text-red-500 mt-0.5" id="text-error-category"></p>
+        </div>
+
+        <button id="simpanData" class="bg-indigo-500 text-white p-1 rounded mt-5 block mx-auto">Simpan</button>
+
+      </div>
+     </div>
+    <!-- modal add meal end -->
+
+  </div>
+
+  <script>
+    const tutup = document.getElementById("tutup")
+    const modalAwalOverlay = document.getElementById("modalAwalOverlay")
+
+    const tableWrapper = document.getElementById("tableWrapper")
+    const averageAndGroup = document.getElementById("averageAndGroup")
+    const averageCal = document.getElementById("averageCal")
+    let span = averageCal.querySelector("span")
+    const mealGroup = document.getElementById("mealGroup")
+
+    const overlayModalAddMeal = document.getElementById("overlayModalAddMeal")
+    const closeAddMeal = document.getElementById("closeAddMeal")
+    const addMealModal = document.getElementById("addMealModal")
+
+    const simpanData = document.getElementById("simpanData")
+
+    const dataKosong = document.getElementById("dataKosong")
+    const mealName = document.getElementById("mealName")
+    const mealCalory = document.getElementById("mealCalory")
+    const mealCategory = document.getElementById("mealCategory")
+
+    const addMeal = document.getElementById("addMeal")
+    const formTitle = document.getElementById("formTitle")
+    const tableMealBody = document.getElementById("tableMealBody")
+
+    let mode;
+    let editId;
+    
+    let state = {
+      meals: []
+    }
+
+    let mealLocal = JSON.parse(localStorage.getItem("meals"))
+    if(mealLocal)
+    {
+      state.meals = mealLocal.meals
+      modalAwalOverlay.classList.add("hidden")
+    }
+
+    if(state.meals.length === 0)
+    {
+      tableWrapper.classList.add("hidden")
+      averageAndGroup.classList.add("hidden")
+
+      let p = document.createElement("p")
+      p.textContent = "*Data belum ada, tekan + untuk mengisi data!*"
+      p.classList.add("text-red-500", "text-sm", "md:text-base", "italic")
+
+      dataKosong.append(p)
+    }
+
+    closeAddMeal.addEventListener("click", () => {
+      overlayModalAddMeal.classList.add("hidden")
+      document.querySelectorAll("[id^='text-error-']").forEach(el => {
+        el.textContent = ""
+      })
+    })
+
+    overlayModalAddMeal.addEventListener("click", (e) => {
+      if(e.target === overlayModalAddMeal){
+        overlayModalAddMeal.classList.add("hidden")
+      }
+    })
+
+    addMeal.addEventListener("click", () => {
+      overlayModalAddMeal.classList.remove("hidden")
+      mode = "add"
+
+      formTitle.textContent = "Add Meal"
+
+      mealName.value = ""
+      mealCalory.value = ""
+      mealCategory.value = ""
+    })
+    
+    tutup.addEventListener("click", () => {
+      modalAwalOverlay.classList.add("hidden")
+    })
+
+    modalAwalOverlay.addEventListener("click", (e) => {
+      if(e.target === modalAwalOverlay)
+      {
+        modalAwalOverlay.classList.add("hidden")
+      }
+    })
+
+    let error = {}
+
+    simpanData.addEventListener("click", () => {
+      Object.entries(error).forEach(([key, message]) => {
+        const el = document.getElementById(`text-error-${key}`)
+        if(el)
+        el.textContent = ""
+      })
+      
+      error = {}
+    
+      const name = mealName.value.trim()
+      if(!name){
+        error.name = "Nama tidak boleh kosong!"
+      }
+
+      const calory = Number(mealCalory.value)
+      if(!calory){
+        error.calory = "Calory tidak boleh kosong!"
+      }
+
+      const category = mealCategory.value.trim()
+      if(!category){
+        error.category = "Category tidak boleh kosong!"
+      }
+
+      Object.entries(error).forEach(([key, message]) => {
+        const el = document.getElementById(`text-error-${key}`)
+        if(el)
+        {
+          el.textContent = message
+        }
+      })
+
+      if(Object.keys(error).length !== 0){
+        return
+      }
+
+      let newState;
+      if(mode === "add"){
+        const id = (state.meals.at(-1)?.id ?? 0) + 1
+        const newMeal = {id, name, calory, category}
+        newState = {...state, meals: [...state.meals, newMeal]}
+
+        state = newState
+      }else if(mode === "edit"){
+        const newMeal = state.meals.map(meal => {
+          if(meal.id === editId){
+            return{
+              ...meal,
+              name, calory, category
+            }
+          }else{
+            return meal
+          }
+        })
+
+        state.meals = newMeal
+      }
+      
+      localStorage.setItem("meals", JSON.stringify(state))
+
+      if(mode === "add"){
+        Swal.fire({
+          title: "Success",
+          text: "Meal added succesfully!",
+          icon: "success",
+          timer: 1500
+        })
+      }else{
+         Swal.fire({
+          title: "Success",
+          text: "Meal updated succesfully!",
+          icon: "success",
+          timer: 1500
+        })
+      }
+      
+      dataKosong.classList.add("hidden")
+
+      overlayModalAddMeal.classList.add("hidden")
+
+      mealName.value = ""
+      mealCalory.value = ""
+      mealCategory.value = ""
+
+      let html = "";
+      
+      state.meals.forEach((m, i) => {
+        html += 
+        `<tr>
+          <td>${i + 1}</td>
+          <td>${m.name}</td>
+          <td>${m.calory}</td>
+          <td>${m.category}</td>
+          <td>
+            <button data-id=${m.id} class="edit bg-green-500 text-white rounded px-2 hover:bg-green-700 mr-1">Edit</button>
+            <button data-id=${m.id} class="delete bg-red-500 text-white rounded px-2 hover:bg-red-700">Delete</button>
+          </td>
+        </tr>`
+      });
+
+      tableMealBody.innerHTML = html;
+      tableWrapper.classList.remove("hidden")
+      averageAndGroup.classList.remove("hidden")
+
+      let total = state.meals.reduce((sum, cValue) => {
+        return sum += cValue.calory
+      }, 0)
+
+      if(state.meals.length > 0){
+        total = total / state.meals.length
+      }else{
+        total = 0
+      }
+
+      span.textContent = total
+
+      const group = state.meals.reduce((acc, cValue) => {
+        if(!acc[cValue.category])
+        {
+          acc[cValue.category] = 0
+        }
+        
+        acc[cValue.category] += 1
+
+        return acc
+      }, {})
+
+      let htmlGroup = ""
+
+      Object.entries(group).forEach(([key, value]) => {
+        htmlGroup += `
+          <tr>
+            <td class="p-1 m-0">${key}</td>
+            <td class="p-1">: ${value}</td>
+          </tr>
+        `
+      })
+
+      mealGroup.innerHTML = `
+        <table class="-ml-1">
+          <tbody>
+            ${htmlGroup}
+          </tbody>
+        </table>
+      `
+    })
+
+    tableMealBody.addEventListener("click", (e) => {
+      const btnEdit = e.target.closest(".edit")
+      if(btnEdit){
+
+        editId = Number(btnEdit.dataset.id)
+
+        const dataEdit = state.meals.find(m => m.id === editId)
+        if(!dataEdit) return
+
+        mode = "edit"
+
+        overlayModalAddMeal.classList.remove("hidden")
+
+        mealName.value = dataEdit.name
+        mealCalory.value = dataEdit.calory
+        mealCategory.value = dataEdit.category
+
+        formTitle.textContent = "Edit Meal"
+        return
+      }
+
+      const btnDelete = e.target.closest(".delete")
+      if(btnDelete){
+        Swal.fire({
+          title: "Yakin hapus data?",
+          text: "Data tidak bisa di kembalikan",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: "Ya, hapus",
+          cancelButtonText: "Batal"
+        }).then((result) => {
+          if(result.isConfirmed){
+            const deleteId = Number(btnDelete.dataset.id)
+
+            const newMeal = state.meals.filter(m => m.id !== deleteId)
+            state.meals = newMeal
+
+            localStorage.setItem("meals", JSON.stringify(state))
+
+            Swal.fire({
+              title: "Success",
+              text: "Data berhasil di hapus.",
+              icon: "success",
+              timer: 1500
+            })
+
+            if(state.meals.length === 0)
+            {
+              tableWrapper.classList.add("hidden")
+              averageAndGroup.classList.add("hidden")
+              dataKosong.classList.remove("hidden")
+
+              dataKosong.innerHTML = `
+                <p class="text-red-500 text-sm md:text-base italic">
+                  *Data belum ada, tekan + untuk mengisi data!*
+                </p>
+              `
+
+              tableMealBody.innerHTML = ""
+              mealGroup.innerHTML = ""
+              span.textContent = "-"
+
+              return
+            }
+
+            let html = "";
+      
+            state.meals.forEach((m, i) => {
+              html += 
+              `<tr>
+                <td>${i + 1}</td>
+                <td>${m.name}</td>
+                <td>${m.calory}</td>
+                <td>${m.category}</td>
+                <td>
+                  <button data-id=${m.id} class="edit bg-green-500 text-white rounded px-2 hover:bg-green-700 mr-1">Edit</button>
+                  <button data-id=${m.id} class="delete bg-red-500 text-white rounded px-2 hover:bg-red-700">Delete</button>
+                </td>
+              </tr>`
+            });
+
+            tableMealBody.innerHTML = html;
+            tableWrapper.classList.remove("hidden")
+            averageAndGroup.classList.remove("hidden")
+
+            let total = state.meals.reduce((sum, cValue) => {
+              return sum += cValue.calory
+            }, 0)
+
+            if(state.meals.length > 0){
+              total = total / state.meals.length
+            }else{
+              total = 0
+            }
+
+            span.textContent = total
+
+            const group = state.meals.reduce((acc, cValue) => {
+              if(!acc[cValue.category])
+              {
+                acc[cValue.category] = 0
+              }
+              
+              acc[cValue.category] += 1
+
+              return acc
+            }, {})
+
+            let htmlGroup = ""
+
+            Object.entries(group).forEach(([key, value]) => {
+              htmlGroup += `
+                <tr>
+                  <td class="p-1 m-0">${key}</td>
+                  <td class="p-1">: ${value}</td>
+                </tr>
+              `
+            })
+
+            mealGroup.innerHTML = `
+              <table class="-ml-1">
+                <tbody>
+                  ${htmlGroup}
+                </tbody>
+              </table>
+            `
+          }
+        })
+      }
+    })
+
+    if(state.meals.length === 0)
+    {
+      tableWrapper.classList.add("hidden")
+      averageAndGroup.classList.add("hidden")
+      dataKosong.classList.remove("hidden")
+
+      dataKosong.innerHTML = `
+        <p class="text-red-500 text-sm md:text-base italic">
+          *Data belum ada, tekan + untuk mengisi data!*
+        </p>
+      `
+    }else{
+      let html = "";
+
+      state.meals.forEach((m, i) => {
+        html += 
+        `<tr>
+          <td>${i + 1}</td>
+          <td>${m.name}</td>
+          <td>${m.calory}</td>
+          <td>${m.category}</td>
+          <td>
+            <button data-id=${m.id} class="edit bg-green-500 text-white rounded px-2 hover:bg-green-700 mr-1">Edit</button>
+            <button data-id=${m.id} class="delete bg-red-500 text-white rounded px-2 hover:bg-red-700">Delete</button>
+          </td>
+        </tr>`
+      });
+
+      tableMealBody.innerHTML = html;
+      tableWrapper.classList.remove("hidden")
+      averageAndGroup.classList.remove("hidden")
+
+      let total = state.meals.reduce((sum, cValue) => {
+        return sum += cValue.calory
+      }, 0)
+
+      if(state.meals.length > 0){
+        total = total / state.meals.length
+      }else{
+        total = 0
+      }
+
+      span.textContent = total
+
+      const group = state.meals.reduce((acc, cValue) => {
+        if(!acc[cValue.category])
+        {
+          acc[cValue.category] = 0
+        }
+        
+        acc[cValue.category] += 1
+
+        return acc
+      }, {})
+
+      let htmlGroup = ""
+
+      Object.entries(group).forEach(([key, value]) => {
+        htmlGroup += `
+          <tr>
+            <td class="p-1 m-0">${key}</td>
+            <td class="p-1">: ${value}</td>
+          </tr>
+        `
+      })
+
+      mealGroup.innerHTML = `
+        <table class="-ml-1">
+          <tbody>
+            ${htmlGroup}
+          </tbody>
+        </table>
+      `
+    }
+    
+  </script>
+</body>
+</html>

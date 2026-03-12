@@ -56,15 +56,15 @@
     <!-- header end -->
 
     <!-- table meal start -->
-    <div id="tableWrapper" class="mt-4 md:mt-6 border border-gray-400 md:rounded-lg overflow-x-auto overflow-x-auto">
-      <table class="w-full text-left whitespace-nowrap text-sm">
+    <div id="tableWrapper" class="mt-4 md:mt-6 border border-gray-400 md:rounded-lg overflow-x-auto">
+      <table class="w-full text-left">
         <thead>
           <tr>
             <th>No</th>
-            <th class="whitespace-nowrap">Name</th>
+            <th>Name</th>
             <th>Calories</th>
             <th>Categories</th>
-            <th class="whitespace-nowrap">Action</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody id="tableMealBody"></tbody>
@@ -227,12 +227,10 @@
         tableWrapper.classList.add("hidden")
         averageAndGroup.classList.add("hidden")
         showEmptyState()
-        modalAwalOverlay.classList.remove("hidden")
       }else{
         tableWrapper.classList.remove("hidden")
         averageAndGroup.classList.remove("hidden")
         hideEmptyState()
-        modalAwalOverlay.classList.add("hidden")
       }
     }
 
