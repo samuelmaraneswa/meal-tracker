@@ -48,12 +48,28 @@
 <body class="m-3 md:m-4">
   <div class="bg-gray-200 h-auto p-3 md:p-4 mt-8 rounded-xl w-full">
 
-    <!-- header start -->
-    <div class="flex items-center gap-[3px]">
-      <h1 class="text-base md:text-xl">Meal Tracker App</h1>
-      <button id="addMeal"><i class="fa-solid fa-plus text-base md:text-xl"></i></button>
-    </div>
-    <!-- header end -->
+    <div class="flex flex-col md:flex-row w-full md:items-center">
+      <!-- header start -->
+      <div class="flex items-center gap-[3px] mr-4">
+        <h1 class="text-base md:text-xl">Meal Tracker App</h1>
+        <button id="addMeal"><i class="fa-solid fa-plus text-base md:text-xl"></i></button>
+      </div>
+      <!-- header end -->
+
+      <!-- form search start -->
+      <div class="flex-1 relative mt-1 md:mt-0 text-sm md:text-base">
+        <input id="mealSearch" type="text" class="w-full rounded focus:outline-none pl-1 md:pl-3 pr-[60px] py-1 md:py-1" autocomplete="off">
+
+        <i class="fa-solid fa-x text-red-500 absolute top-1/2 -translate-y-1/2 right-[35px] cursor-pointer text-xs hidden"></i>
+
+        <i class="fas fa-search absolute right-[10px] text-gray-500 top-1/2 -translate-y-1/2"></i>
+
+        <div id="mealSuggestions" class="bg-white border border-black absolute w-full max-h-[150px] left-0 top-full rounded hidden overflow-y-auto">
+          <ul></ul>
+        </div>
+      </div>
+      <!-- form search end -->
+     </div>
 
     <!-- table meal start -->
     <div id="tableWrapper" class="mt-4 md:mt-6 border border-gray-400 md:rounded-lg overflow-x-auto overflow-x-auto">
@@ -178,6 +194,12 @@
     const addMealBtn = document.getElementById("addMeal")
     const formTitle = document.getElementById("formTitle")
     const tableMealBody = document.getElementById("tableMealBody")
+
+    const mealSearch = document.getElementById("mealSearch")
+    const mealSuggestions = document.getElementById("mealSuggestions")
+    const xSearch = document.querySelector(".fa-x")
+
+    let activeIndex = -1
 
     let mode;
     let editId;
@@ -366,7 +388,7 @@
     {
       const total = calculateAverageCalories(currentState)
 
-      span.textContent = total.toFixed(2)
+      span.textContent = Number(total.toFixed(2))
     }
 
     function renderMealGroup(currentState)
@@ -570,6 +592,100 @@
       if(btnDelete){
         const id = Number(btnDelete.dataset.id)
         handleDeleteMeal(state, id)
+      }
+    })
+
+    xSearch.addEventListener("click", () => {
+      mealSearch.value = ""
+      mealSuggestions.classList.add("hidden")
+      mealSearch.focus()
+      xSearch.classList.add("hidden")
+    })
+
+    mealSearch.addEventListener("input", () => {
+      activeIndex = -1;
+
+      const inputSearch = mealSearch.value.trim()
+      if(inputSearch.length === 0){
+        xSearch.classList.add("hidden")
+      }else{
+        xSearch.classList.remove("hidden")
+      }
+
+      if(!inputSearch){
+        mealSuggestions.classList.add("hidden")
+        return;
+      } 
+
+      const newMeal = state.meals.filter(m => m.name.toLowerCase().includes(inputSearch.toLowerCase()))
+      let html = "";
+
+      if(newMeal.length === 0){
+        html += `<li class="text-red-500 text-sm md:text-base italic py-1 px-2 md:px-3 py-1 md:py-1 pointer-events-none">*Data tidak ditemukan!*</li>`
+      }else{
+        newMeal.forEach(m => {
+          const regex = new RegExp(`(${inputSearch})`, "gi")
+          const highlighted = m.name.replace(regex, "<b>$1</b>")
+          html += `<li class="py-1 px-2 md:px-3 py-1 md:py-1 hover:bg-gray-200 cursor-pointer">${highlighted}</li>`
+        })
+      }
+      const ul = mealSuggestions.querySelector("ul")
+      ul.innerHTML = html
+      mealSuggestions.classList.remove("hidden")
+
+      mealSuggestions.addEventListener("click", (e) => {
+        const li = e.target.closest("li")
+        const liValue = li.textContent
+        mealSearch.value = liValue
+        mealSuggestions.classList.add("hidden")
+      })
+    })
+    
+    mealSearch.addEventListener("keyup", (e) => {
+      if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return
+
+      const items = mealSuggestions.querySelectorAll("li")
+      if(items.length === 0) return
+
+      if(e.key === "ArrowDown"){
+        activeIndex++;
+        if(activeIndex >= items.length) activeIndex = 0
+      }
+
+      if(e.key === "ArrowUp"){
+        activeIndex--;
+        if(activeIndex < 0) activeIndex = items.length - 1
+      }
+
+      items.forEach(item => item.classList.remove("bg-gray-200"))
+      
+      const activeItem = items[activeIndex]
+      activeItem.classList.add("bg-gray-200")
+
+      activeItem.scrollIntoView({
+        block: "nearest"
+      })
+
+      mealSearch.value = activeItem.textContent
+
+      mealSearch.focus()
+      const len = mealSearch.value.length
+      mealSearch.setSelectionRange(len, len)
+    })
+
+    document.addEventListener("keydown", (e) => {
+      if(e.key === "Escape")
+      {
+        mealSuggestions.classList.add("hidden")
+        activeIndex = -1
+      }
+    })
+
+    document.addEventListener("click", (e) => {
+      if(!mealSuggestions.contains(e.target) && e.target !== mealSearch)
+      {
+        mealSuggestions.classList.add("hidden")
+        activeIndex = -1
       }
     })
   </script>
