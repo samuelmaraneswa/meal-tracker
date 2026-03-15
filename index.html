@@ -35,6 +35,22 @@
       margin-bottom: 6px;
     }
 
+    .no-scroll{
+      overflow: hidden;
+    }
+    
+    .modal-show{
+      opacity: 1;
+      transform: scale(1);
+      transition: all 0.2s ease;
+    }
+
+    .modal-hide{
+      opacity: 0;
+      transform: scale(0.9);
+      transition: all 0.2s ease;
+    }
+
     @media (max-width: 640px){
       table thead tr th{
         padding: 6px;
@@ -48,9 +64,9 @@
 <body class="m-3 md:m-4">
   <div class="bg-gray-200 h-auto p-3 md:p-4 mt-8 rounded-xl w-full">
 
-    <div class="flex flex-col md:flex-row w-full md:items-center">
+    <div class="flex flex-col md:flex-row w-full md:items-center gap-[10px]">
       <!-- header start -->
-      <div class="flex items-center gap-[3px] mr-4">
+      <div class="flex items-center gap-[3px]">
         <h1 class="text-base md:text-xl">Meal Tracker App</h1>
         <button id="addMeal"><i class="fa-solid fa-plus text-base md:text-xl"></i></button>
       </div>
@@ -62,13 +78,20 @@
 
         <i class="fa-solid fa-x text-red-500 absolute top-1/2 -translate-y-1/2 right-[35px] cursor-pointer text-xs hidden"></i>
 
-        <i class="fas fa-search absolute right-[10px] text-gray-500 top-1/2 -translate-y-1/2"></i>
+        <i class="fas fa-search absolute right-[10px] text-gray-500 top-1/2 -translate-y-1/2 cursor-pointer"></i>
 
         <div id="mealSuggestions" class="bg-white border border-black absolute w-full max-h-[150px] left-0 top-full rounded hidden overflow-y-auto">
           <ul></ul>
         </div>
       </div>
       <!-- form search end -->
+
+      <!-- select category start -->
+       <select name="" id="categoryFilter" class="py-1 rounded cursor-pointer px-1">
+        <option value="">--Pilih Category--</option>
+        
+       </select>
+      <!-- select category end -->
      </div>
 
     <!-- table meal start -->
@@ -140,7 +163,7 @@
 
     <!-- modal add meal start -->
      <div id="overlayModalAddMeal" class="hidden bg-black/60 fixed inset-0 flex items-start justify-center">
-      <div id="addMealModal" class="modal-content-add relative bg-white h-auto mt-20 p-6 m-4 rounded w-[450px]">
+      <div id="addMealModal" class="modal-content-add modal-hide relative bg-white h-auto mt-20 p-6 m-4 rounded w-[450px]">
 
         <button id="closeAddMeal" class="absolute bg-black text-red-500 rounded-full px-0.5 right-[-10px] top-[-10px]"><i class="fa-solid fa-x"></i></button>
 
@@ -198,7 +221,13 @@
     const mealSearch = document.getElementById("mealSearch")
     const mealSuggestions = document.getElementById("mealSuggestions")
     const xSearch = document.querySelector(".fa-x")
+    const search = document.querySelector(".fa-search")
+    const ul = mealSuggestions.querySelector("ul")
 
+    const select = document.getElementById("categoryFilter")
+
+    let currentKeyWord = ""
+    let currentCategory = ""
     let activeIndex = -1
 
     let mode;
@@ -244,23 +273,45 @@
 
     function toggleMainSection(currentState)
     {
-      if(currentState.meals.length === 0)
-      {
+      const isSearching = currentKeyWord !== "" || currentCategory !== ""
+
+      if(state.meals.length === 0 && !isSearching){
         tableWrapper.classList.add("hidden")
         averageAndGroup.classList.add("hidden")
         showEmptyState()
         modalAwalOverlay.classList.remove("hidden")
-      }else{
-        tableWrapper.classList.remove("hidden")
-        averageAndGroup.classList.remove("hidden")
-        hideEmptyState()
-        modalAwalOverlay.classList.add("hidden")
+        return
       }
+
+      if(currentState.meals.length === 0 && isSearching){
+        tableWrapper.classList.add("hidden")
+        averageAndGroup.classList.add("hidden")
+
+        dataKosong.classList.remove("hidden")
+        dataKosong.innerHTML = `
+          <p class="text-red-500 italic text-center">
+            Data tidak ditemukan
+          </p>
+        `
+
+        modalAwalOverlay.classList.add("hidden")
+        return
+      }
+
+      tableWrapper.classList.remove("hidden")
+      averageAndGroup.classList.remove("hidden")
+      hideEmptyState()
+      modalAwalOverlay.classList.add("hidden")
     }
 
     function openAddModal()
     {
+      document.body.classList.add("no-scroll")
       overlayModalAddMeal.classList.remove("hidden")
+      requestAnimationFrame(() => {
+        addMealModal.classList.remove("modal-hide")
+        addMealModal.classList.add("modal-show")
+      })
       mode = "add"
 
       formTitle.textContent = "Add Meal"
@@ -268,7 +319,14 @@
 
     function closeAddModal()
     {
-      overlayModalAddMeal.classList.add("hidden")
+      addMealModal.classList.remove("modal-show")
+      addMealModal.classList.add("modal-hide")
+
+      setTimeout(() => {
+        overlayModalAddMeal.classList.add("hidden")
+      }, 200)
+
+      document.body.classList.remove("no-scroll")
       document.querySelectorAll("[id^='text-error-']").forEach(el => {
         el.textContent = ""
       })
@@ -414,9 +472,26 @@
       `
     }
 
+    function renderCategoryFilter()
+    {
+      select.length = 1;
+
+      const filteredCategory = state.meals.map(m => m.category).filter((c, i, arr) => arr.indexOf(c) === i)
+      filteredCategory.forEach(c => {
+        const option = document.createElement("option")
+        option.value = c
+        option.textContent = c
+
+        select.append(option)
+      })
+
+      select.value = currentCategory
+    }
+
     function renderAllUI(currentState)
     {
       toggleMainSection(currentState)
+      renderCategoryFilter()
       renderMealTable(currentState)
       renderAverageCalories(currentState)
       renderMealGroup(currentState)
@@ -455,12 +530,37 @@
     {
       return (currentState.meals.at(-1)?.id ?? 0) + 1
     }
+    
+    function filterMealsAdvanced(currentState, keyword, category)
+    {
+      return currentState.meals.filter(m => {
+        const matchKeyword = keyword === "" || m.name.toLowerCase().includes(keyword.toLowerCase())
+
+        const matchCategory = category === "" || m.category === category
+
+        return matchKeyword && matchCategory
+      })
+    }
 
     function setState(newState)
     {
       state = newState
       saveMealFromStorage(state)
-      renderAllUI(state)
+
+      if(currentKeyWord === "")
+      {
+        renderAllUI(state)
+        return
+      }
+
+      const filteredMeals = filterMealsAdvanced(state, currentKeyWord, currentCategory)
+
+      if(filteredMeals.length === 0 && state.meals.length > 0){
+        renderAllUI(state)
+        resetSearch()
+      }else{
+        renderAllUI({...state, meals: filteredMeals})
+      }
     }
 
     function handleSaveMeal(currentState)
@@ -483,6 +583,10 @@
       }
 
       if(mode === "add"){
+        currentKeyWord = ""
+        mealSearch.value = ""
+        document.body.classList.remove("no-scroll")
+        
         const newState = addMeal(currentState, data.name, data.calory, data.category)
         setState(newState)
         Swal.fire({
@@ -492,6 +596,7 @@
           timer: 1500
         })
       }else if(mode === "edit"){
+        document.body.classList.remove("no-scroll")
         const newState = updateMeal(currentState, editId, data.name, data.calory, data.category)
         setState(newState)
         Swal.fire({
@@ -510,6 +615,8 @@
     {
       const dataEdit = getMealById(state, id)
       if(!dataEdit) return
+
+      openAddModal()
       
       mode = "edit"
       editId = id
@@ -535,6 +642,7 @@
         if(result.isConfirmed){
           const newState = deleteMeal(currentState, id)
           setState(newState)
+          mealSearch.value = ""
 
           Swal.fire({
             title: "Success",
@@ -551,18 +659,18 @@
     renderAllUI(state)
 
     closeAddMeal.addEventListener("click", () => {
-      overlayModalAddMeal.classList.add("hidden")
+      closeAddModal()
       clearValidationError()
     })
 
     overlayModalAddMeal.addEventListener("click", (e) => {
       if(e.target === overlayModalAddMeal){
-        overlayModalAddMeal.classList.add("hidden")
+        closeAddModal()
       }
     })
 
     addMealBtn.addEventListener("click", () => {
-      overlayModalAddMeal.classList.remove("hidden")
+      openAddModal()
       setFormModeAdd()
     })
     
@@ -595,56 +703,115 @@
       }
     })
 
-    xSearch.addEventListener("click", () => {
+    function resetSearch()
+    {
+      hideSuggestions()
       mealSearch.value = ""
-      mealSuggestions.classList.add("hidden")
       mealSearch.focus()
       xSearch.classList.add("hidden")
-    })
+      currentKeyWord = ""
+      currentCategory = ""
+      renderAllUI(state)
+    }
 
-    mealSearch.addEventListener("input", () => {
-      activeIndex = -1;
-
-      const inputSearch = mealSearch.value.trim()
-      if(inputSearch.length === 0){
+    function toggleClearIcon(keyword)
+    {
+      if(keyword.length === 0){
         xSearch.classList.add("hidden")
       }else{
         xSearch.classList.remove("hidden")
       }
+    }
 
-      if(!inputSearch){
-        mealSuggestions.classList.add("hidden")
-        return;
-      } 
+    function hideSuggestions(){
+      mealSuggestions.classList.add("hidden")
+      activeIndex = -1
+    }
 
-      const newMeal = state.meals.filter(m => m.name.toLowerCase().includes(inputSearch.toLowerCase()))
+    function renderSuggestions(items, keyword)
+    {
       let html = "";
-
-      if(newMeal.length === 0){
+      if(items.length === 0)
+      {
         html += `<li class="text-red-500 text-sm md:text-base italic py-1 px-2 md:px-3 py-1 md:py-1 pointer-events-none">*Data tidak ditemukan!*</li>`
       }else{
-        newMeal.forEach(m => {
-          const regex = new RegExp(`(${inputSearch})`, "gi")
-          const highlighted = m.name.replace(regex, "<b>$1</b>")
+        items.forEach(i => {
+          const regex = new RegExp(`(${keyword})`, "gi")
+          const highlighted = i.name.replace(regex, "<b>$1</b>")
           html += `<li class="py-1 px-2 md:px-3 py-1 md:py-1 hover:bg-gray-200 cursor-pointer">${highlighted}</li>`
         })
       }
-      const ul = mealSuggestions.querySelector("ul")
+
+      return html
+    }
+
+    function applySearch(name)
+    {
+      const filteredMeals = filterMealsAdvanced(state, name, currentCategory)
+      
+      renderAllUI({...state, meals:filteredMeals})
+      hideSuggestions()
+    }
+
+    function handleSearchInput()
+    {
+      activeIndex = -1
+
+      const inputSearch = mealSearch.value.trim()
+      currentKeyWord = inputSearch
+
+      toggleClearIcon(inputSearch)
+
+      if(!inputSearch){
+        hideSuggestions()
+        return;
+      } 
+
+      const filteredMeals = filterMealsAdvanced(state, currentKeyWord, currentCategory)
+
+      let html = renderSuggestions(filteredMeals, inputSearch)
+
       ul.innerHTML = html
       mealSuggestions.classList.remove("hidden")
+    }
 
-      mealSuggestions.addEventListener("click", (e) => {
-        const li = e.target.closest("li")
-        const liValue = li.textContent
-        mealSearch.value = liValue
-        mealSuggestions.classList.add("hidden")
-      })
+    xSearch.addEventListener("click", () => {
+      resetSearch()
+    })
+
+    mealSearch.addEventListener("input", () => {
+      handleSearchInput()
+    })
+
+    mealSuggestions.addEventListener("click", (e) => {
+      const li = e.target.closest("li")
+      if(!li) return;
+
+      const liValue = li.textContent
+
+      if(!liValue) return;
+
+      mealSearch.value = liValue
+
+      applySearch(liValue)
     })
     
     mealSearch.addEventListener("keyup", (e) => {
-      if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return
+      if (e.key !== "ArrowDown" && e.key !== "ArrowUp" && e.key !== "Enter") return
 
-      const items = mealSuggestions.querySelectorAll("li")
+      if(e.key === "Enter")
+      {
+        const value = mealSearch.value.trim()
+
+        if(!value){
+          hideSuggestions()
+          return;
+        } 
+
+        applySearch(value)
+      }
+
+      const items = ul.querySelectorAll("li")
       if(items.length === 0) return
 
       if(e.key === "ArrowDown"){
@@ -660,6 +827,7 @@
       items.forEach(item => item.classList.remove("bg-gray-200"))
       
       const activeItem = items[activeIndex]
+      if (!activeItem) return 
       activeItem.classList.add("bg-gray-200")
 
       activeItem.scrollIntoView({
@@ -676,18 +844,32 @@
     document.addEventListener("keydown", (e) => {
       if(e.key === "Escape")
       {
-        mealSuggestions.classList.add("hidden")
-        activeIndex = -1
+        hideSuggestions()
       }
     })
 
     document.addEventListener("click", (e) => {
       if(!mealSuggestions.contains(e.target) && e.target !== mealSearch)
       {
-        mealSuggestions.classList.add("hidden")
-        activeIndex = -1
+        hideSuggestions()
       }
     })
+
+    search.addEventListener("click", () => {
+      const value = mealSearch.value.trim()
+
+      currentKeyWord = value
+      currentCategory = select.value
+
+      if(!value && !currentCategory){
+        renderAllUI(state)
+        hideSuggestions()
+        return
+      }
+
+      applySearch(value)
+    })
+
   </script>
 </body>
 </html>
