@@ -369,20 +369,31 @@
     function validateMealForm(data)
     {
       let error = {}
+
       if(!data.name)
       {
         error.name = "Nama tidak boleh kosong."
       }
-      if(!data.calory)
+
+      if(data.calory === "")
       {
         error.calory = "Calory tidak boleh kosong."
       }
+      else if(Number.isNaN(data.calory))
+      {
+        error.calory = "Calory harus berupa angka."
+      }
+      else if(data.calory <= 0)
+      {
+        error.calory = "Calory harus lebih dari 0."
+      }
+
       if(!data.category)
       {
         error.category = "Category tidak boleh kosong."
       }
 
-      return error;
+      return error
     }
 
     function renderValidationErrors(errors)
@@ -582,7 +593,19 @@
 
     function generateMealId(currentState)
     {
-      return (currentState.meals.at(-1)?.id ?? 0) + 1
+      if(currentState.meals.length === 0) return 1
+
+      let maxId = currentState.meals[0].id
+
+      for(let i = 1; i < currentState.meals.length; i++)
+      {
+        if(currentState.meals[i].id > maxId)
+        {
+          maxId = currentState.meals[i].id
+        }
+      }
+
+      return maxId + 1
     }
     
     function filterMealsAdvanced(currentState, keyword, category)
@@ -631,10 +654,11 @@
 
       let data = {}
       const name = mealName.value.trim()
-      data.name = name
-      const calory = Number(mealCalory.value)
-      data.calory = calory
+      const caloryInput = mealCalory.value.trim()
       const category = mealCategory.value.trim()
+
+      data.name = name
+      data.calory = caloryInput === "" ? "" : Number(caloryInput)
       data.category = category
 
       const errors = validateMealForm(data)
