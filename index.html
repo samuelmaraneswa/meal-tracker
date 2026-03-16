@@ -111,6 +111,10 @@
     </div>
     <!-- table meal end -->
 
+    <!-- pagination start -->
+     <div id="pagination" class="flex items-center justify-center mt-6"></div>
+    <!-- pagination end -->
+
     <!-- average calories & group by category start -->
     <div id="averageAndGroup" class="mt-4 md:mt-6 space-y-2 md:font-semibold text-sm md:text-base">
       <div id="averageCal" class="">
@@ -134,7 +138,7 @@
       <div class="relative w-[650px] bg-white text-black h-auto rounded-xl p-4 flex flex-col mt-24 items-center">
 
         <!-- icon x -->
-        <button id="tutup" class="absolute px-0.5 rounded-full bg-black text-red-500 right-[-10px] top-[-10px] cursor-pointer border border-white"><i class="fa-solid fa-x"></i></button>
+        <button id="tutup" class="absolute px-0.5 rounded-full bg-black text-white right-[-10px] top-[-10px] cursor-pointer border border-white"><i class="fa-solid fa-x"></i></button>
 
         <div class="text-red-700 font-semibold text-[26px] mb-6 border-b border-black">Attention!!!</div>
         <p class="">Untuk mengisi data, klik icon <strong class="font-bold text-[20px]">+</strong> ,lalu isi data dengan </p>
@@ -165,7 +169,7 @@
      <div id="overlayModalAddMeal" class="hidden bg-black/60 fixed inset-0 flex items-start justify-center">
       <div id="addMealModal" class="modal-content-add modal-hide relative bg-white h-auto mt-20 p-6 m-4 rounded w-[450px]">
 
-        <button id="closeAddMeal" class="absolute bg-black text-red-500 rounded-full px-0.5 right-[-10px] top-[-10px]"><i class="fa-solid fa-x"></i></button>
+        <button id="closeAddMeal" class="absolute bg-black text-white rounded-full px-0.5 right-[-10px] top-[-10px]"><i class="fa-solid fa-x"></i></button>
 
         <div id="formTitle" class="border-b border-black text-center">Add Meal</div>
 
@@ -226,9 +230,14 @@
 
     const select = document.getElementById("categoryFilter")
 
+    const pagination = document.getElementById("pagination")
+
     let currentKeyWord = ""
     let currentCategory = ""
     let activeIndex = -1
+
+    let currentPage = 1
+    let limit = 5
 
     let mode;
     let editId;
@@ -395,7 +404,7 @@
     {
       const id = generateMealId(currentState)
       const newMeal = {id, name, calory, category}
-      const newState = {...currentState, meals: [...currentState.meals, newMeal]}
+      const newState = {...currentState, meals: [newMeal, ...currentState.meals]}
 
       return newState
     }
@@ -421,14 +430,53 @@
       return currentState.meals.find(m => m.id === id) 
     }
 
-    function renderMealTable(currentState)
+    function paginateData(data, currentPage, limit)
+    {
+      let startIndex = (currentPage - 1) * limit
+      let endIndex = startIndex + limit
+
+      const paginationArray = data.slice(startIndex, endIndex)
+      return paginationArray
+    }
+
+    function renderPagination(totalData)
+    {
+      const totalPages = Math.ceil(totalData / limit)
+      if(totalPages <= 1)
+      {
+        pagination.innerHTML = ""
+        return
+      }
+
+      let options = ""
+
+      for(let i = 1; i <= totalPages; i++)
+      {
+        options += `<option value="${i}" ${i === currentPage ? "selected" : ""}> ${i} </option>`
+      }
+
+      pagination.innerHTML = `
+        <button id="prevPage" class="text-sm md:text-base bg-white px-2 py-1 border mx-2 rounded border border-black" ${currentPage === 1 ? "disabled" : ""}> Prev </button>
+
+        <select id="pageSelect" class="text-sm md:text-base border rounded px-2 py-1 mx-2">
+          ${options}
+        </select>
+        <span>/ ${totalPages}</span>
+
+        <button id="nextPage" class="text-sm md:text-base bg-white px-2 py-1 border mx-2 rounded border border-black" ${currentPage === totalPages ? "disabled" : ""}> Next </button>
+      `
+    }
+
+    function renderMealTable(meals)
     {
       let html = "";
+
+      const startIndex = (currentPage - 1) * limit
       
-      currentState.meals.forEach((m, i) => {
+      meals.forEach((m, i) => {
         html += 
         `<tr>
-          <td>${i + 1}</td>
+          <td>${startIndex + i + 1}</td>
           <td>${m.name}</td>
           <td>${m.calory}</td>
           <td>${m.category}</td>
@@ -492,7 +540,13 @@
     {
       toggleMainSection(currentState)
       renderCategoryFilter()
-      renderMealTable(currentState)
+
+      const pagedMeals = paginateData(currentState.meals, currentPage, limit)
+
+      renderMealTable(pagedMeals)
+
+      renderPagination(currentState.meals.length)
+
       renderAverageCalories(currentState)
       renderMealGroup(currentState)
     }
@@ -542,18 +596,26 @@
       })
     }
 
+    function getFilteredMeals()
+    {
+      const keyword = currentKeyWord
+      const category = currentCategory
+
+      return filterMealsAdvanced(state, keyword, category)
+    }
+
     function setState(newState)
     {
       state = newState
       saveMealFromStorage(state)
 
-      if(currentKeyWord === "")
+      if(currentKeyWord === "" && currentCategory === "")
       {
         renderAllUI(state)
         return
       }
 
-      const filteredMeals = filterMealsAdvanced(state, currentKeyWord, currentCategory)
+      const filteredMeals = getFilteredMeals()
 
       if(filteredMeals.length === 0 && state.meals.length > 0){
         renderAllUI(state)
@@ -747,7 +809,9 @@
 
     function applySearch(name)
     {
-      const filteredMeals = filterMealsAdvanced(state, name, currentCategory)
+      currentPage = 1
+
+      const filteredMeals = getFilteredMeals()
       
       renderAllUI({...state, meals:filteredMeals})
       hideSuggestions()
@@ -767,7 +831,7 @@
         return;
       } 
 
-      const filteredMeals = filterMealsAdvanced(state, currentKeyWord, currentCategory)
+      const filteredMeals = getFilteredMeals()
 
       let html = renderSuggestions(filteredMeals, inputSearch)
 
@@ -855,11 +919,16 @@
       }
     })
 
+    select.addEventListener("change", () => {
+      currentCategory = select.value
+    })
+
     search.addEventListener("click", () => {
       const value = mealSearch.value.trim()
 
       currentKeyWord = value
       currentCategory = select.value
+      currentPage = 1
 
       if(!value && !currentCategory){
         renderAllUI(state)
@@ -868,6 +937,36 @@
       }
 
       applySearch(value)
+    })
+
+    pagination.addEventListener("click", (e) => {
+      if (e.target.tagName === "SELECT") return;
+      
+      if(e.target.id === "prevPage")
+      {
+        if(currentPage > 1) currentPage--
+      }
+
+      if(e.target.id === "nextPage")
+      {
+        const filteredMeals = getFilteredMeals()
+        const totalPages = Math.ceil(filteredMeals.length / limit)
+
+        if(currentPage < totalPages) currentPage++
+      }
+
+      const filteredMeals = getFilteredMeals()
+      renderAllUI({...state, meals: filteredMeals})
+    })
+
+    pagination.addEventListener("change", (e) => {
+      if(e.target.id === "pageSelect")
+      {
+        currentPage = Number(e.target.value)
+
+        const filteredMeals = getFilteredMeals()
+        renderAllUI({...state, meals: filteredMeals})
+      }
     })
 
   </script>
